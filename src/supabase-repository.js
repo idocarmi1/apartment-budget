@@ -48,19 +48,27 @@ function fromExpense(expense) {
 }
 
 function assertSupabaseEnv() {
-  if (!process.env.SUPABASE_URL || !getSupabaseSecretKey()) {
-    throw new Error('חסרים משתני SUPABASE_URL או SUPABASE_SECRET_KEY/SUPABASE_SERVICE_ROLE_KEY');
+  if (!getSupabaseUrl() || !getSupabaseSecretKey()) {
+    throw new Error('חסרים משתני Supabase URL או מפתח שרת Supabase');
   }
 }
 
+function getSupabaseUrl() {
+  return process.env.SUPABASE_URL || process.env.SUPABASE_URL_SUPABASE_URL || '';
+}
+
 function getSupabaseSecretKey() {
-  return process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  return process.env.SUPABASE_SECRET_KEY ||
+    process.env.SUPABASE_URL_SUPABASE_SECRET_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_URL_SUPABASE_SERVICE_ROLE_KEY ||
+    '';
 }
 
 function createSupabaseRepository(client) {
   const supabase = client || (() => {
     assertSupabaseEnv();
-    return createClient(process.env.SUPABASE_URL, getSupabaseSecretKey(), {
+    return createClient(getSupabaseUrl(), getSupabaseSecretKey(), {
       auth: { persistSession: false, autoRefreshToken: false }
     });
   })();
@@ -230,6 +238,7 @@ module.exports = {
   createSupabaseRepository,
   fromExpense,
   getSupabaseSecretKey,
+  getSupabaseUrl,
   toBudget,
   toExpense
 };

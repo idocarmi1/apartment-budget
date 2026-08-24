@@ -1,38 +1,83 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { getSupabaseSecretKey } = require('../src/supabase-repository');
+const { getSupabaseSecretKey, getSupabaseUrl } = require('../src/supabase-repository');
+
+const ENV_KEYS = [
+  'SUPABASE_URL',
+  'SUPABASE_URL_SUPABASE_URL',
+  'SUPABASE_SECRET_KEY',
+  'SUPABASE_URL_SUPABASE_SECRET_KEY',
+  'SUPABASE_SERVICE_ROLE_KEY',
+  'SUPABASE_URL_SUPABASE_SERVICE_ROLE_KEY'
+];
 
 function withEnv(values, fn) {
-  const previousSecret = process.env.SUPABASE_SECRET_KEY;
-  const previousServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if ('SUPABASE_SECRET_KEY' in values) process.env.SUPABASE_SECRET_KEY = values.SUPABASE_SECRET_KEY;
-  else delete process.env.SUPABASE_SECRET_KEY;
-  if ('SUPABASE_SERVICE_ROLE_KEY' in values) process.env.SUPABASE_SERVICE_ROLE_KEY = values.SUPABASE_SERVICE_ROLE_KEY;
-  else delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const previous = Object.fromEntries(ENV_KEYS.map((key) => [key, process.env[key]]));
+  for (const key of ENV_KEYS) {
+    if (key in values) process.env[key] = values[key];
+    else delete process.env[key];
+  }
 
   try {
     fn();
   } finally {
-    if (previousSecret === undefined) delete process.env.SUPABASE_SECRET_KEY;
-    else process.env.SUPABASE_SECRET_KEY = previousSecret;
-    if (previousServiceRole === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY;
-    else process.env.SUPABASE_SERVICE_ROLE_KEY = previousServiceRole;
+    for (const key of ENV_KEYS) {
+      if (previous[key] === undefined) delete process.env[key];
+      else process.env[key] = previous[key];
+    }
   }
 }
+
+test('SUPABASE_URL מקבל קדימות על שם ה-URL שנוצר על ידי Vercel', () => {
+  withEnv({
+    SUPABASE_URL: 'test-standard-url',
+    SUPABASE_URL_SUPABASE_URL: 'test-vercel-url'
+  }, () => {
+    assert.equal(getSupabaseUrl(), 'test-standard-url');
+  });
+});
+
+test('SUPABASE_URL_SUPABASE_URL נתמך כ-fallback לכתובת Supabase', () => {
+  withEnv({
+    SUPABASE_URL_SUPABASE_URL: 'test-vercel-url'
+  }, () => {
+    assert.equal(getSupabaseUrl(), 'test-vercel-url');
+  });
+});
 
 test('SUPABASE_SECRET_KEY מקבל קדימות על השם הישן', () => {
   withEnv({
     SUPABASE_SECRET_KEY: 'test-new-secret',
+    SUPABASE_URL_SUPABASE_SECRET_KEY: 'test-vercel-secret',
     SUPABASE_SERVICE_ROLE_KEY: 'test-old-secret'
   }, () => {
     assert.equal(getSupabaseSecretKey(), 'test-new-secret');
   });
 });
 
-test('SUPABASE_SERVICE_ROLE_KEY נשאר נתמך לצורך תאימות', () => {
+test('SUPABASE_URL_SUPABASE_SECRET_KEY מקבל קדימות לפני service role הישן', () => {
   withEnv({
-    SUPABASE_SERVICE_ROLE_KEY: 'test-old-secret'
+    SUPABASE_URL_SUPABASE_SECRET_KEY: 'test-vercel-secret',
+    SUPABASE_SERVICE_ROLE_KEY: 'test-old-secret',
+    SUPABASE_URL_SUPABASE_SERVICE_ROLE_KEY: 'test-vercel-old-secret'
+  }, () => {
+    assert.equal(getSupabaseSecretKey(), 'test-vercel-secret');
+  });
+});
+
+test('SUPABASE_SERVICE_ROLE_KEY נשאר נתמך לפני שם service role של Vercel', () => {
+  withEnv({
+    SUPABASE_SERVICE_ROLE_KEY: 'test-old-secret',
+    SUPABASE_URL_SUPABASE_SERVICE_ROLE_KEY: 'test-vercel-old-secret'
   }, () => {
     assert.equal(getSupabaseSecretKey(), 'test-old-secret');
+  });
+});
+
+test('SUPABASE_URL_SUPABASE_SERVICE_ROLE_KEY נתמך כ-fallback אחרון', () => {
+  withEnv({
+    SUPABASE_URL_SUPABASE_SERVICE_ROLE_KEY: 'test-vercel-old-secret'
+  }, () => {
+    assert.equal(getSupabaseSecretKey(), 'test-vercel-old-secret');
   });
 });
