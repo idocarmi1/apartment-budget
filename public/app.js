@@ -119,6 +119,14 @@ async function api(path, options = {}) {
   return data;
 }
 
+function apiUrl(action, params = {}) {
+  const search = new URLSearchParams({ action });
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== '') search.set(key, value);
+  }
+  return `/api?${search.toString()}`;
+}
+
 function showToast(message) {
   els.toast.textContent = message;
   els.toast.classList.remove('hidden');
@@ -162,7 +170,7 @@ async function init() {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
   }
   try {
-    const session = await api('/api/session');
+    const session = await api(apiUrl('session'));
     if (session.authenticated) {
       state.session = session;
       await enterApp();
@@ -183,7 +191,7 @@ function showLogin() {
 async function enterApp() {
   els.loginView.classList.add('hidden');
   els.appView.classList.remove('hidden');
-  const categoriesResponse = await api('/api/categories');
+  const categoriesResponse = await api(apiUrl('categories'));
   state.categories = categoriesResponse.categories;
   fillCategorySelect(els.expenseCategory);
   fillCategorySelect(els.editCategory);
@@ -229,7 +237,7 @@ async function loadSummary(options = {}) {
     if (state.filters.category) params.set('category', state.filters.category);
     if (state.filters.paidBy) params.set('paidBy', state.filters.paidBy);
     if (state.filters.q) params.set('q', state.filters.q);
-    state.summary = await api(`/api/summary?${params.toString()}`);
+    state.summary = await api(apiUrl('summary', Object.fromEntries(params)));
     renderSummary();
     setSync(true, options.quiet ? 'מסונכרן אוטומטית' : 'מסונכרן');
   } catch (error) {
@@ -341,7 +349,7 @@ function fillExpenseForm(parsed) {
 }
 
 async function loadHistory() {
-  const response = await api('/api/history');
+  const response = await api(apiUrl('history'));
   els.historyList.innerHTML = '';
   if (!response.months.length) {
     els.historyList.innerHTML = '<div class="empty">אין עדיין חודשים להצגה.</div>';
@@ -395,7 +403,7 @@ function bindEvents() {
     els.loginError.textContent = '';
     const form = new FormData(els.loginForm);
     try {
-      state.session = await api('/api/login', {
+      state.session = await api(apiUrl('login'), {
         method: 'POST',
         body: JSON.stringify({ user: form.get('user'), pin: form.get('pin') })
       });
@@ -406,7 +414,7 @@ function bindEvents() {
   });
 
   els.logoutBtn.addEventListener('click', async () => {
-    await api('/api/logout', { method: 'POST' });
+    await api(apiUrl('logout'), { method: 'POST' });
     stopPolling();
     showLogin();
   });
@@ -437,7 +445,7 @@ function bindEvents() {
 
   els.budgetForm.addEventListener('submit', async (event) => {
     event.preventDefault();
-    await api(`/api/budget/${state.currentMonth}`, {
+    await api(apiUrl('budget', { month: state.currentMonth }), {
       method: 'PUT',
       body: JSON.stringify({ amountCents: centsFromInput(els.budgetInput) })
     });
@@ -447,13 +455,13 @@ function bindEvents() {
 
   els.copyPreviousBudgetBtn.addEventListener('click', async () => {
     const previousMonth = addMonths(state.currentMonth, -1);
-    const previous = await api(`/api/summary?month=${previousMonth}`);
+    const previous = await api(apiUrl('summary', { month: previousMonth }));
     if (!previous.budgetCents) {
       showToast('לא נמצא תקציב בחודש הקודם');
       return;
     }
     if (!confirm(`להעתיק תקציב של ${formatMoney(previous.budgetCents)} מ${monthName(previousMonth)}?`)) return;
-    await api(`/api/budget/${state.currentMonth}`, {
+    await api(apiUrl('budget', { month: state.currentMonth }), {
       method: 'PUT',
       body: JSON.stringify({ amountCents: previous.budgetCents })
     });
@@ -464,7 +472,7 @@ function bindEvents() {
     event.preventDefault();
     setMessage(els.entryMessage, '');
     try {
-      const parsed = await api(`/api/parse?text=${encodeURIComponent(els.quickInput.value)}`);
+      const parsed = await api(apiUrl('parse', { text: els.quickInput.value }));
       if (!parsed.ok) {
         fillExpenseForm({ paidBy: state.session.user, expenseDate: localDate(), category: 'אחר' });
         setMessage(els.entryMessage, parsed.error || 'לא הצלחתי לפענח, אפשר למלא ידנית.', true);
@@ -490,7 +498,7 @@ function bindEvents() {
     event.preventDefault();
     setBusy(els.expenseForm.querySelector('button[type="submit"]'), true);
     try {
-      await api('/api/expenses', {
+      await api(apiUrl('expenses'), {
         method: 'POST',
         body: JSON.stringify(readExpenseForm())
       });
@@ -514,7 +522,7 @@ function bindEvents() {
   });
 
   els.undoBtn.addEventListener('click', async () => {
-    const response = await api('/api/expenses/undo-last', { method: 'POST' });
+    const response = await api(apiUrl('undo-last'), { method: 'POST' });
     showToast(response.deleted ? 'ההוצאה האחרונה נמחקה' : 'אין הוצאה אחרונה למחיקה');
     await loadSummary();
   });
@@ -532,7 +540,7 @@ function bindEvents() {
   els.editExpenseForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (state.currentMonth !== localMonth() && !confirm('זו הוצאה מחודש קודם. לשמור את העריכה?')) return;
-    await api(`/api/expenses/${els.editExpenseId.value}`, {
+    await api(apiUrl('expense', { id: els.editExpenseId.value }), {
       method: 'PUT',
       body: JSON.stringify({
         amountCents: centsFromInput(els.editAmount),
@@ -559,7 +567,7 @@ function bindEvents() {
   els.copySummaryBtn.addEventListener('click', () => copyText(buildSummaryText()));
 
   els.backupBtn.addEventListener('click', async () => {
-    const backup = await api('/api/backup');
+    const backup = await api(apiUrl('backup'));
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -577,7 +585,7 @@ function bindEvents() {
       const backup = JSON.parse(await file.text());
       if (!confirm('שחזור יחליף את הנתונים הקיימים. להמשיך?')) return;
       if (!confirm('אישור נוסף: לשחזר את קובץ הגיבוי עכשיו?')) return;
-      await api('/api/restore', { method: 'POST', body: JSON.stringify(backup) });
+      await api(apiUrl('restore'), { method: 'POST', body: JSON.stringify(backup) });
       setMessage(els.backupMessage, 'השחזור הושלם וסונכרן.');
       await loadSummary();
     } catch (error) {
@@ -627,7 +635,7 @@ async function deleteExpense(expense) {
     ? 'זו הוצאה מחודש קודם. למחוק אותה בכל זאת?'
     : `למחוק את "${expense.description}"?`;
   if (!confirm(message)) return;
-  await api(`/api/expenses/${expense.id}`, { method: 'DELETE' });
+  await api(apiUrl('expense', { id: expense.id }), { method: 'DELETE' });
   showToast('ההוצאה נמחקה');
   await loadSummary();
 }
