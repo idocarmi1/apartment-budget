@@ -340,6 +340,16 @@ test('לחיצה על כפתור השיתוף משתמשת ב-handler האמית
   });
 });
 
+test('service worker לא מחזיר סקריפטים ישנים ממטמון v1', () => {
+  const source = fs.readFileSync(path.join(PUBLIC_ROOT, 'sw.js'), 'utf8');
+
+  assert.match(source, /home-budget-shell-unicode-runtime-2/);
+  assert.match(source, /\/share-message\.js\?v=unicode-runtime-2/);
+  assert.match(source, /\/app\.js\?v=unicode-runtime-2/);
+  assert.match(source, /event\.request\.destination === 'script'/);
+  assert.doesNotMatch(source, /home-budget-shell-v1/);
+});
+
 test('מטפל בחודש בלי תקציב ובלי הוצאות', () => {
   const text = share.buildWhatsAppSummary({
     month: '2026-09',
