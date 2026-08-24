@@ -8,6 +8,10 @@ function getRepository() {
   return cachedRepository;
 }
 
+function setRepositoryForTests(repo) {
+  cachedRepository = repo;
+}
+
 function sendJson(res, status, data, headers = {}) {
   res.statusCode = status;
   for (const [key, value] of Object.entries(headers)) res.setHeader(key, value);
@@ -61,5 +65,6 @@ module.exports = {
   readBody,
   sendJson,
   sendMethodNotAllowed,
+  setRepositoryForTests,
   withApi
 };

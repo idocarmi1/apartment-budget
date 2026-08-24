@@ -447,7 +447,7 @@ function bindEvents() {
     event.preventDefault();
     await api(apiUrl('budget', { month: state.currentMonth }), {
       method: 'PUT',
-      body: JSON.stringify({ amountCents: centsFromInput(els.budgetInput) })
+      body: JSON.stringify({ month: state.currentMonth, amountCents: centsFromInput(els.budgetInput) })
     });
     showToast('התקציב נשמר');
     await loadSummary();
@@ -463,7 +463,7 @@ function bindEvents() {
     if (!confirm(`להעתיק תקציב של ${formatMoney(previous.budgetCents)} מ${monthName(previousMonth)}?`)) return;
     await api(apiUrl('budget', { month: state.currentMonth }), {
       method: 'PUT',
-      body: JSON.stringify({ amountCents: previous.budgetCents })
+      body: JSON.stringify({ month: state.currentMonth, amountCents: previous.budgetCents })
     });
     await loadSummary();
   });

@@ -81,7 +81,8 @@ const history = withApi(async (req, res, { repo }) => {
 const budget = withApi(async (req, res, { repo, readBody: read }) => {
   if (req.method !== 'PUT') return sendMethodNotAllowed(res);
   const body = await read(req);
-  const month = req.query?.month || new URL(req.url, 'http://localhost').pathname.split('/').pop();
+  const month = queryValue(req, 'month') || body.month;
+  if (!month) throw new Error('חודש לא תקין');
   const amountCents = body.amountCents ?? parseAmountToCents(body.amount);
   return sendJson(res, 200, { budget: await repo.setBudget(month, amountCents) });
 });
