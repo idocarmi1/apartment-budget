@@ -53,6 +53,16 @@ function assertSupabaseEnv() {
   }
 }
 
+function monthDateRange(month) {
+  const normalizedMonth = normalizeMonth(month);
+  const [year, monthNumber] = normalizedMonth.split('-').map(Number);
+  const nextMonth = monthNumber === 12 ? `${year + 1}-01` : `${year}-${String(monthNumber + 1).padStart(2, '0')}`;
+  return {
+    start: `${normalizedMonth}-01`,
+    end: `${nextMonth}-01`
+  };
+}
+
 function getSupabaseUrl() {
   return process.env.SUPABASE_URL || process.env.SUPABASE_URL_SUPABASE_URL || '';
 }
@@ -91,6 +101,19 @@ function createSupabaseRepository(client) {
 
   async function allExpenses() {
     const rows = await must(supabase.from('expenses').select('*').order('expense_date').order('id'));
+    return rows.map(toExpense);
+  }
+
+  async function expensesForMonth(month) {
+    const range = monthDateRange(month);
+    const rows = await must(
+      supabase.from('expenses')
+        .select('*')
+        .gte('expense_date', range.start)
+        .lt('expense_date', range.end)
+        .order('expense_date')
+        .order('id')
+    );
     return rows.map(toExpense);
   }
 
@@ -180,7 +203,7 @@ function createSupabaseRepository(client) {
 
   async function getSummary(month, filters = {}) {
     const normalizedMonth = normalizeMonth(month);
-    const [budgets, expenses] = await Promise.all([allBudgets(), allExpenses()]);
+    const [budgets, expenses] = await Promise.all([allBudgets(), expensesForMonth(normalizedMonth)]);
     return calculateSummary(normalizedMonth, budgets, expenses, filters);
   }
 
@@ -239,6 +262,7 @@ module.exports = {
   fromExpense,
   getSupabaseSecretKey,
   getSupabaseUrl,
+  monthDateRange,
   toBudget,
   toExpense
 };

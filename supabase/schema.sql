@@ -47,7 +47,7 @@ create table if not exists public.expenses (
   updated_at timestamptz not null default now()
 );
 
-create index if not exists expenses_month_idx on public.expenses ((to_char(expense_date, 'YYYY-MM')));
+create index if not exists expenses_expense_date_idx on public.expenses (expense_date);
 create index if not exists expenses_created_by_idx on public.expenses (created_by, created_at desc);
 
 alter table public.app_users enable row level security;

@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { getSupabaseSecretKey, getSupabaseUrl } = require('../src/supabase-repository');
+const { getSupabaseSecretKey, getSupabaseUrl, monthDateRange } = require('../src/supabase-repository');
 
 const ENV_KEYS = [
   'SUPABASE_URL',
@@ -79,5 +79,16 @@ test('SUPABASE_URL_SUPABASE_SERVICE_ROLE_KEY נתמך כ-fallback אחרון', (
     SUPABASE_URL_SUPABASE_SERVICE_ROLE_KEY: 'test-vercel-old-secret'
   }, () => {
     assert.equal(getSupabaseSecretKey(), 'test-vercel-old-secret');
+  });
+});
+
+test('טווח תאריכים חודשי מתאים לשאילתת אינדקס ישיר על expense_date', () => {
+  assert.deepEqual(monthDateRange('2026-08'), {
+    start: '2026-08-01',
+    end: '2026-09-01'
+  });
+  assert.deepEqual(monthDateRange('2026-12'), {
+    start: '2026-12-01',
+    end: '2027-01-01'
   });
 });
