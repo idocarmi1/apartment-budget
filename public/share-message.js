@@ -1,18 +1,18 @@
 (function attachShareMessage(root) {
   const APP_URL = 'https://apartment-budget.vercel.app';
   const EMOJI = Object.freeze({
-    HOME: '\u{1F3E1}',
-    MONEY: '\u{1F4B0}',
-    EXPENSES: '\u{1F4B8}',
-    SUCCESS: '\u2705',
-    WARNING: '\u26A0\uFE0F',
-    NO_BUDGET: '\u26AA',
-    CHART: '\u{1F4CA}',
-    COUPLE: '\u{1F46B}',
-    CATEGORIES: '\u{1F3F7}\uFE0F',
-    RECEIPT: '\u{1F9FE}',
-    PARTY: '\u{1F389}',
-    LINK: '\u{1F517}'
+    HOME: String.fromCodePoint(0x1F3E1),
+    MONEY: String.fromCodePoint(0x1F4B0),
+    EXPENSES: String.fromCodePoint(0x1F4B8),
+    SUCCESS: String.fromCodePoint(0x2705),
+    WARNING: String.fromCodePoint(0x26A0, 0xFE0F),
+    NO_BUDGET: String.fromCodePoint(0x26AA),
+    CHART: String.fromCodePoint(0x1F4CA),
+    COUPLE: String.fromCodePoint(0x1F46B),
+    CATEGORIES: String.fromCodePoint(0x1F3F7, 0xFE0F),
+    RECEIPT: String.fromCodePoint(0x1F9FE),
+    PARTY: String.fromCodePoint(0x1F389),
+    LINK: String.fromCodePoint(0x1F517)
   });
 
   function userName(user) {
@@ -127,7 +127,9 @@
   }
 
   function buildWhatsAppUrl(summary) {
-    return `https://wa.me/?text=${encodeURIComponent(buildWhatsAppSummary(summary))}`;
+    const url = new URL('https://wa.me/');
+    url.searchParams.set('text', buildWhatsAppSummary(summary));
+    return url.toString();
   }
 
   const api = {

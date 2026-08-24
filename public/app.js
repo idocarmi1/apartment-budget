@@ -587,7 +587,7 @@ function bindEvents() {
     try {
       const summary = await getUnfilteredCurrentSummary();
       const url = window.HomeBudgetShare.buildWhatsAppUrl(summary);
-      const opened = window.open(url, '_blank', 'noopener');
+      const opened = window.open(url, '_blank', 'noopener,noreferrer');
       if (!opened) {
         await copyText(window.HomeBudgetShare.buildWhatsAppSummary(summary));
         showToast('הסיכום הועתק. אפשר להדביק אותו ב־WhatsApp.');
