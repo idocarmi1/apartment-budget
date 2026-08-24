@@ -1,5 +1,19 @@
 (function attachShareMessage(root) {
   const APP_URL = 'https://apartment-budget.vercel.app';
+  const EMOJI = Object.freeze({
+    HOME: '\u{1F3E1}',
+    MONEY: '\u{1F4B0}',
+    EXPENSES: '\u{1F4B8}',
+    SUCCESS: '\u2705',
+    WARNING: '\u26A0\uFE0F',
+    NO_BUDGET: '\u26AA',
+    CHART: '\u{1F4CA}',
+    COUPLE: '\u{1F46B}',
+    CATEGORIES: '\u{1F3F7}\uFE0F',
+    RECEIPT: '\u{1F9FE}',
+    PARTY: '\u{1F389}',
+    LINK: '\u{1F517}'
+  });
 
   function userName(user) {
     return user === 'karina' ? 'קארינה' : 'עידו';
@@ -52,31 +66,31 @@
 
   function buildWhatsAppSummary(summary) {
     const data = summary || {};
-    const lines = [`🏡 *תקציב הבית – ${monthName(data.month)}*`, ''];
+    const lines = [`${EMOJI.HOME} *תקציב הבית – ${monthName(data.month)}*`, ''];
     const budgetCents = asCents(data.budgetCents);
     const totalCents = asCents(data.totalCents);
     const remainingCents = budgetCents - totalCents;
     const expenses = sortRecentExpenses(Array.isArray(data.expenses) ? data.expenses : []);
 
     if (budgetCents > 0) {
-      lines.push(`💰 *תקציב חודשי:* ${formatMoney(budgetCents)}`);
+      lines.push(`${EMOJI.MONEY} *תקציב חודשי:* ${formatMoney(budgetCents)}`);
     } else {
-      lines.push('💰 *תקציב חודשי:* עדיין לא הוגדר תקציב לחודש הזה');
+      lines.push(`${EMOJI.MONEY} *תקציב חודשי:* עדיין לא הוגדר תקציב לחודש הזה`);
     }
-    lines.push(`💸 *סך ההוצאות:* ${formatMoney(totalCents)}`);
+    lines.push(`${EMOJI.EXPENSES} *סך ההוצאות:* ${formatMoney(totalCents)}`);
     if (budgetCents > 0 && remainingCents < 0) {
-      lines.push(`⚠️ *חריגה של:* ${formatMoney(Math.abs(remainingCents))}`);
+      lines.push(`${EMOJI.WARNING} *חריגה של:* ${formatMoney(Math.abs(remainingCents))}`);
     } else if (budgetCents > 0) {
-      lines.push(`✅ *נשאר:* ${formatMoney(remainingCents)}`);
+      lines.push(`${EMOJI.SUCCESS} *נשאר:* ${formatMoney(remainingCents)}`);
     } else if (totalCents > 0) {
-      lines.push('⚪ *יתרה/חריגה:* לא חושב כי אין תקציב מוגדר');
+      lines.push(`${EMOJI.NO_BUDGET} *יתרה/חריגה:* לא חושב כי אין תקציב מוגדר`);
     } else {
-      lines.push('✅ *יתרה/חריגה:* אין הוצאות ואין תקציב מוגדר');
+      lines.push(`${EMOJI.SUCCESS} *יתרה/חריגה:* אין הוצאות ואין תקציב מוגדר`);
     }
-    lines.push(`📊 *ניצול התקציב:* ${budgetCents > 0 ? formatPercent((totalCents / budgetCents) * 100) : '0% (אין תקציב מוגדר)'}`);
+    lines.push(`${EMOJI.CHART} *ניצול התקציב:* ${budgetCents > 0 ? formatPercent((totalCents / budgetCents) * 100) : '0% (אין תקציב מוגדר)'}`);
     lines.push('');
 
-    lines.push('👫 *מי שילם?*');
+    lines.push(`${EMOJI.COUPLE} *מי שילם?*`);
     for (const user of ['ido', 'karina']) {
       const payer = data.paidBy?.[user] || { amountCents: 0, count: 0 };
       const count = Number.isFinite(Number(payer.count)) ? Number(payer.count) : expenses.filter((expense) => expense.paidBy === user).length;
@@ -84,20 +98,20 @@
     }
     lines.push('');
 
-    lines.push('🏷️ *לפי קטגוריות*');
+    lines.push(`${EMOJI.CATEGORIES} *לפי קטגוריות*`);
     if (Array.isArray(data.byCategory) && data.byCategory.length) {
       const categories = [...data.byCategory].sort((a, b) => asCents(b.amountCents) - asCents(a.amountCents));
       for (const item of categories) {
         lines.push(`• ${safeText(item.category, 'אחר')}: ${formatMoney(item.amountCents)}`);
       }
     } else {
-      lines.push('אין עדיין הוצאות בחודש הזה 🎉');
+      lines.push(`אין עדיין הוצאות בחודש הזה ${EMOJI.PARTY}`);
     }
     lines.push('');
 
-    lines.push('🧾 *הוצאות אחרונות*');
+    lines.push(`${EMOJI.RECEIPT} *הוצאות אחרונות*`);
     if (!expenses.length) {
-      lines.push('אין עדיין הוצאות בחודש הזה 🎉');
+      lines.push(`אין עדיין הוצאות בחודש הזה ${EMOJI.PARTY}`);
     } else {
       for (const expense of expenses.slice(0, 10)) {
         const dateText = formatDate(expense.expenseDate);
@@ -107,7 +121,7 @@
         lines.push(`ועוד ${expenses.length - 10} הוצאות באפליקציה`);
       }
     }
-    lines.push('', '🔗 *כניסה לתקציב המשותף:*', APP_URL);
+    lines.push('', `${EMOJI.LINK} *כניסה לתקציב המשותף:*`, APP_URL);
 
     return lines.join('\n');
   }
@@ -118,6 +132,7 @@
 
   const api = {
     APP_URL,
+    EMOJI,
     buildWhatsAppSummary,
     buildWhatsAppUrl,
     formatMoney
