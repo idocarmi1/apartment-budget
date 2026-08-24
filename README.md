@@ -1,0 +1,162 @@
+# תקציב הבית
+
+MVP פשוט בעברית לניהול תקציב והוצאות דירה משותפות לעידו וקארינה.
+
+האפליקציה בנויה לפריסה ב־Vercel:
+
+- אתר סטטי בתיקיית `public`.
+- Serverless Functions בתיקיית `api`.
+- מסד נתונים מרכזי ב־Supabase PostgreSQL.
+- סנכרון ראשוני באמצעות טעינה מחדש אחרי פעולה, polling כל 4 שניות, ורענון כאשר חוזרים לאפליקציה.
+
+אין שימוש ב־SQLite, ב־Socket.IO, בשרת Node קבוע, ב־React, ב־OpenAI API או ב־WhatsApp API.
+
+## מה צריך להתקין
+
+- Node.js 20 ומעלה.
+- חשבון Supabase.
+- חשבון Vercel.
+
+## יצירת פרויקט Supabase
+
+1. היכנסו ל־[Supabase](https://supabase.com).
+2. צרו Project חדש.
+3. פתחו את `SQL Editor`.
+4. העתיקו והריצו את התוכן של `supabase/schema.sql`.
+5. ודאו שנוצרו הטבלאות:
+   `app_users`, `categories`, `budgets`, `expenses`.
+
+ה־PIN של המשתמשים לא נשמר ב־Supabase. הוא מוגדר רק במשתני סביבה.
+
+## משתני סביבה
+
+צרו קובץ `.env` מקומי לפי `.env.example`:
+
+```env
+SUPABASE_URL=
+SUPABASE_SECRET_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+IDO_PIN=
+KARINA_PIN=
+COOKIE_SECRET=
+```
+
+איפה מוצאים את הערכים:
+
+- `SUPABASE_URL`: במסך `Project Settings` ואז `API`.
+- `SUPABASE_SECRET_KEY`: המפתח הסודי ש־Vercel מגדיר באינטגרציית Supabase העדכנית.
+- `SUPABASE_SERVICE_ROLE_KEY`: שם ישן שנתמך לצורך תאימות, אם זה המשתנה שכבר קיים אצלכם.
+- `IDO_PIN`: הקוד האישי של עידו.
+- `KARINA_PIN`: הקוד האישי של קארינה.
+- `COOKIE_SECRET`: מחרוזת ארוכה ואקראית לחתימת Cookie.
+
+חשוב: `SUPABASE_SECRET_KEY` וגם `SUPABASE_SERVICE_ROLE_KEY` הם סודות פרטיים. הם נשארים רק בצד השרת ובמשתני הסביבה של Vercel. לא לשים אותם בקוד הדפדפן.
+
+## התקנה והרצה מקומית
+
+```bash
+npm install
+npm run dev
+```
+
+הפקודה `npm run dev` מפעילה את `vercel dev`, כדי לבדוק את האתר וה־Serverless Functions כמו בפריסה.
+
+לאחר ההפעלה פתחו את הכתובת שמופיעה בטרמינל, בדרך כלל:
+
+```text
+http://localhost:3000
+```
+
+## נתוני דמו
+
+לאחר שהגדרתם Supabase ו־`.env`, אפשר ליצור נתוני דמו:
+
+```bash
+npm run seed
+```
+
+הנתונים נשמרים ב־Supabase וניתן למחוק אותם באפליקציה או לשחזר מגיבוי.
+
+## בדיקת סנכרון
+
+1. התחברו בדפדפן אחד כעידו.
+2. התחברו בדפדפן אחר או בטלפון כקארינה.
+3. הגדירו תקציב או הוסיפו הוצאה אצל אחד המשתמשים.
+4. בצד השני הנתונים יתעדכנו אוטומטית בתוך כמה שניות.
+
+האפליקציה לא מרעננת את כל העמוד ולא שומרת מידע פיננסי ב־localStorage.
+
+## פתיחה משני טלפונים באותה רשת
+
+בהרצה מקומית:
+
+1. ודאו שהמחשב והטלפונים באותה רשת Wi-Fi.
+2. מצאו את כתובת ה־IP המקומית של המחשב.
+3. פתחו בטלפונים את הכתובת ש־`vercel dev` מציג עבור הרשת, או כתובת בסגנון:
+
+```text
+http://IP-של-המחשב:3000
+```
+
+בפריסה ל־Vercel פשוט פותחים את הקישור הקבוע מכל טלפון.
+
+## גיבוי ושחזור
+
+באפליקציה יש כפתור ייצוא JSON וכפתור שחזור JSON.
+
+הגיבוי כולל:
+
+- משתמשים.
+- קטגוריות.
+- תקציבים.
+- הוצאות.
+- תאריכים.
+- מי שילם ומי יצר את הרשומה.
+
+השחזור מתבצע דרך פונקציית PostgreSQL בתוך פעולה אטומית. אם השחזור נכשל, הנתונים הקיימים לא נמחקים.
+
+## פריסה ל־Vercel
+
+1. העלו את הפרויקט ל־GitHub.
+2. ב־Vercel בחרו `Add New Project`.
+3. חברו את הריפוזיטורי.
+4. במסך Environment Variables הוסיפו:
+   `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `IDO_PIN`, `KARINA_PIN`, `COOKIE_SECRET`.
+   אם כבר יש לכם `SUPABASE_SERVICE_ROLE_KEY`, האפליקציה תמשיך לתמוך בו, אבל `SUPABASE_SECRET_KEY` מקבל קדימות.
+5. פרסו את הפרויקט.
+6. פתחו את הקישור של Vercel והתחברו בנפרד כעידו וכקארינה.
+
+אין צורך ב־Persistent Disk כי כל הנתונים נשמרים ב־Supabase PostgreSQL ולא במערכת הקבצים של Vercel.
+
+## עדכונים עתידיים בלי למחוק נתונים
+
+- לא למחוק את פרויקט Supabase.
+- לא להריץ SQL שמוחק טבלאות קיימות.
+- לבצע שינויים עתידיים באמצעות migrations שמוסיפים או משנים שדות בזהירות.
+- לפרוס גרסאות חדשות ב־Vercel דרך Git. הפריסה מחליפה קוד בלבד, לא את הנתונים.
+
+בהמשך אפשר להחליף את מנגנון ה־polling ב־Supabase Realtime בלי לשנות את מבנה הממשק באופן משמעותי.
+
+## בדיקות
+
+```bash
+npm test
+```
+
+הבדיקות משתמשות ב־repository בזיכרון וב־mock לקלטי API. הן לא מתחברות למסד Supabase אמיתי.
+
+## מבנה הפרויקט
+
+- `api/`: פונקציות Serverless של Vercel.
+- `public/`: HTML, CSS, JavaScript וקבצי PWA.
+- `src/`: לוגיקה משותפת, אימות, parsing ו־repositories.
+- `supabase/schema.sql`: SQL להקמת הטבלאות והפונקציה לשחזור גיבוי.
+- `tests/`: בדיקות אוטומטיות ללא מסד אמיתי.
+
+## אבטחה
+
+- ה־Cookie חתום, `httpOnly`, וב־Production גם `secure`.
+- כל פעולת API שמחזירה או משנה נתונים דורשת התחברות.
+- המפתח הסודי של Supabase נמצא רק ב־Serverless Functions, דרך `SUPABASE_SECRET_KEY` או השם הישן `SUPABASE_SERVICE_ROLE_KEY`.
+- הנתונים הפיננסיים נשמרים רק ב־Supabase.
+- ב־Service Worker נשמר רק shell סטטי, לא תגובות API פיננסיות.

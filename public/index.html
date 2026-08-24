@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#244a40">
+    <title>תקציב הבית</title>
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <section id="loginView" class="login-view">
+        <div class="brand">
+          <img src="/icon.svg" alt="" width="64" height="64">
+          <h1>תקציב הבית</h1>
+          <p>כניסה משותפת לניהול הוצאות הדירה</p>
+        </div>
+        <form id="loginForm" class="panel compact">
+          <label>
+            מי נכנס?
+            <select name="user" required>
+              <option value="ido">עידו</option>
+              <option value="karina">קארינה</option>
+            </select>
+          </label>
+          <label>
+            קוד PIN
+            <input name="pin" type="password" inputmode="numeric" autocomplete="current-password" required>
+          </label>
+          <button class="primary" type="submit">כניסה</button>
+          <p id="loginError" class="error-text" role="alert"></p>
+        </form>
+      </section>
+
+      <main id="appView" class="hidden">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">תקציב הבית</p>
+            <h1 id="monthTitle">החודש</h1>
+          </div>
+          <div class="top-actions">
+            <span id="syncStatus" class="sync-status">מתחבר</span>
+            <button id="logoutBtn" class="ghost" type="button">יציאה</button>
+          </div>
+        </header>
+
+        <section class="month-nav" aria-label="ניווט חודשים">
+          <button id="prevMonthBtn" type="button">הקודם</button>
+          <button id="todayBtn" type="button">החודש</button>
+          <button id="nextMonthBtn" type="button">הבא</button>
+          <button id="historyBtn" type="button">היסטוריה</button>
+        </section>
+
+        <section class="summary-grid" aria-label="סיכום חודש">
+          <article class="metric">
+            <span>תקציב</span>
+            <strong id="budgetAmount">0 ₪</strong>
+          </article>
+          <article class="metric">
+            <span>הוצאות</span>
+            <strong id="totalAmount">0 ₪</strong>
+          </article>
+          <article id="remainingCard" class="metric">
+            <span>נשאר</span>
+            <strong id="remainingAmount">0 ₪</strong>
+          </article>
+          <article class="metric">
+            <span>ניצול</span>
+            <strong id="utilizationAmount">0%</strong>
+          </article>
+        </section>
+
+        <section class="panel">
+          <div class="progress-wrap">
+            <div id="progressBar" class="progress-bar"></div>
+          </div>
+          <form id="budgetForm" class="inline-form">
+            <label>
+              תקציב חודשי
+              <input id="budgetInput" type="number" min="0" step="0.01" placeholder="6000">
+            </label>
+            <button type="submit">שמירת תקציב</button>
+          </form>
+          <button id="copyPreviousBudgetBtn" class="ghost hidden" type="button">העתקת תקציב מהחודש הקודם</button>
+        </section>
+
+        <section class="panel entry-panel">
+          <h2>הוספת הוצאה</h2>
+          <form id="quickForm" class="quick-form">
+            <input id="quickInput" type="text" placeholder="לדוגמה: 250 סופר" autocomplete="off">
+            <button class="primary" type="submit">פענוח</button>
+          </form>
+          <form id="expenseForm" class="expense-form hidden">
+            <div class="form-grid">
+              <label>
+                סכום
+                <input id="expenseAmount" type="number" min="0.01" step="0.01" required>
+              </label>
+              <label>
+                קטגוריה
+                <select id="expenseCategory" required></select>
+              </label>
+              <label class="wide">
+                תיאור
+                <input id="expenseDescription" type="text" maxlength="140" required>
+              </label>
+              <label>
+                מי שילם
+                <select id="expensePaidBy" required>
+                  <option value="ido">עידו</option>
+                  <option value="karina">קארינה</option>
+                </select>
+              </label>
+              <label>
+                תאריך
+                <input id="expenseDate" type="date" required>
+              </label>
+            </div>
+            <div class="row-actions">
+              <button class="primary" type="submit">שמירת הוצאה</button>
+              <button id="cancelExpenseBtn" class="ghost" type="button">ביטול</button>
+            </div>
+          </form>
+          <button id="manualExpenseBtn" class="ghost" type="button">טופס רגיל</button>
+          <p id="entryMessage" class="message" role="status"></p>
+        </section>
+
+        <section class="split">
+          <article class="panel">
+            <h2>לפי קטגוריות</h2>
+            <div id="categoryBreakdown" class="breakdown"></div>
+          </article>
+          <article class="panel">
+            <h2>מי שילם</h2>
+            <div id="payerBreakdown" class="payer-grid"></div>
+          </article>
+        </section>
+
+        <section class="panel">
+          <div class="section-head">
+            <h2>הוצאות</h2>
+            <button id="undoBtn" class="ghost" type="button">ביטול אחרונה שלי</button>
+          </div>
+          <form id="filtersForm" class="filters">
+            <select id="categoryFilter">
+              <option value="">כל הקטגוריות</option>
+            </select>
+            <select id="payerFilter">
+              <option value="">כולם</option>
+              <option value="ido">עידו</option>
+              <option value="karina">קארינה</option>
+            </select>
+            <input id="searchInput" type="search" placeholder="חיפוש בתיאור">
+          </form>
+          <div id="emptyState" class="empty hidden">עדיין אין הוצאות בחודש הזה.</div>
+          <div id="expensesList" class="expenses-list"></div>
+        </section>
+
+        <section id="historyView" class="panel hidden">
+          <div class="section-head">
+            <h2>היסטוריה</h2>
+            <button id="closeHistoryBtn" class="ghost" type="button">סגירה</button>
+          </div>
+          <div id="historyList" class="history-list"></div>
+        </section>
+
+        <section class="panel">
+          <h2>שיתוף וגיבוי</h2>
+          <div class="row-actions wrap">
+            <button id="shareBtn" type="button">שתף סיכום ב־WhatsApp</button>
+            <button id="copySummaryBtn" class="ghost" type="button">העתקת סיכום</button>
+            <button id="backupBtn" class="ghost" type="button">ייצוא JSON</button>
+            <label class="file-button">
+              שחזור JSON
+              <input id="restoreInput" type="file" accept="application/json">
+            </label>
+          </div>
+          <p id="backupMessage" class="message" role="status"></p>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="expenseDialog">
+      <form id="editExpenseForm" method="dialog" class="dialog-form">
+        <h2>עריכת הוצאה</h2>
+        <input id="editExpenseId" type="hidden">
+        <label>
+          סכום
+          <input id="editAmount" type="number" min="0.01" step="0.01" required>
+        </label>
+        <label>
+          קטגוריה
+          <select id="editCategory" required></select>
+        </label>
+        <label>
+          תיאור
+          <input id="editDescription" type="text" maxlength="140" required>
+        </label>
+        <label>
+          מי שילם
+          <select id="editPaidBy" required>
+            <option value="ido">עידו</option>
+            <option value="karina">קארינה</option>
+          </select>
+        </label>
+        <label>
+          תאריך
+          <input id="editDate" type="date" required>
+        </label>
+        <div class="row-actions">
+          <button class="primary" value="save">שמירה</button>
+          <button class="ghost" value="cancel">ביטול</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div id="toast" class="toast hidden" role="status"></div>
+    <script src="/app.js"></script>
+  </body>
+</html>

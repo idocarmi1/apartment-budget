@@ -1,0 +1,28 @@
+{
+  "name": "home-budget",
+  "version": "1.0.0",
+  "description": "תקציב הבית - MVP לניהול תקציב והוצאות דירה משותפות",
+  "main": "api/session.js",
+  "scripts": {
+    "dev": "npx vercel dev",
+    "test": "node --test tests/*.test.js",
+    "seed": "node scripts/seed-demo.js"
+  },
+  "keywords": [
+    "budget",
+    "supabase",
+    "vercel",
+    "rtl"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "cookie-signature": "^1.2.2",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=20"
+  }
+}

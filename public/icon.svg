@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="תקציב הבית">
+  <rect width="192" height="192" rx="36" fill="#244a40"/>
+  <path d="M42 94 96 48l54 46v54a12 12 0 0 1-12 12H54a12 12 0 0 1-12-12Z" fill="#f7f3eb"/>
+  <path d="M74 112h44M74 132h44M84 92h24" stroke="#d58b39" stroke-width="12" stroke-linecap="round"/>
+</svg>
