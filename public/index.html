@@ -10,16 +10,17 @@
     <link rel="stylesheet" href="/styles.css">
   </head>
   <body>
+    <a class="skip-link" href="#appView">דלגו לתוכן המרכזי</a>
     <div class="app-shell">
       <section id="loginView" class="login-view">
         <div class="brand">
           <img src="/icon.svg" alt="" width="64" height="64">
-          <h1>תקציב הבית</h1>
-          <p>כניסה משותפת לניהול הוצאות הדירה</p>
+          <h1>🏡 תקציב הבית שלנו</h1>
+          <p>התחברו כדי לעדכן ולראות את התקציב המשותף</p>
         </div>
         <form id="loginForm" class="panel compact">
           <label>
-            מי נכנס?
+            מי מתחבר/ת?
             <select name="user" required>
               <option value="ido">עידו</option>
               <option value="karina">קארינה</option>
@@ -29,74 +30,98 @@
             קוד PIN
             <input name="pin" type="password" inputmode="numeric" autocomplete="current-password" required>
           </label>
-          <button class="primary" type="submit">כניסה</button>
-          <p id="loginError" class="error-text" role="alert"></p>
+          <button class="primary large-button" type="submit">כניסה</button>
+          <p id="loginError" class="error-text" role="alert" aria-live="polite"></p>
         </form>
       </section>
 
       <main id="appView" class="hidden">
         <header class="topbar">
           <div>
-            <p class="eyebrow">תקציב הבית</p>
+            <p id="helloText" class="eyebrow">היי 👋</p>
             <h1 id="monthTitle">החודש</h1>
+            <p class="subtle">בואו נשמור יחד על תקציב הבית 🏡</p>
           </div>
           <div class="top-actions">
-            <span id="syncStatus" class="sync-status">מתחבר</span>
+            <span id="syncStatus" class="sync-status" role="status" aria-live="polite">מתחבר</span>
             <button id="logoutBtn" class="ghost" type="button">יציאה</button>
           </div>
         </header>
 
+        <section id="guideCard" class="panel guide-card">
+          <div class="section-head">
+            <h2>איך מוסיפים הוצאה?</h2>
+            <button id="dismissGuideBtn" class="icon-button" type="button" aria-label="סגירת ההדרכה">×</button>
+          </div>
+          <ol class="guide-list">
+            <li>✍️ כותבים סכום ותיאור</li>
+            <li>➕ לוחצים על הוספת הוצאה</li>
+            <li>✅ ההוצאה נשמרת ומופיעה אצל שניכם</li>
+          </ol>
+        </section>
+
         <section class="month-nav" aria-label="ניווט חודשים">
-          <button id="prevMonthBtn" type="button">הקודם</button>
+          <button id="prevMonthBtn" type="button">הקודם ←</button>
           <button id="todayBtn" type="button">החודש</button>
-          <button id="nextMonthBtn" type="button">הבא</button>
+          <button id="nextMonthBtn" type="button">→ הבא</button>
           <button id="historyBtn" type="button">היסטוריה</button>
         </section>
 
         <section class="summary-grid" aria-label="סיכום חודש">
           <article class="metric">
-            <span>תקציב</span>
+            <span>💰 תקציב</span>
             <strong id="budgetAmount">0 ₪</strong>
           </article>
           <article class="metric">
-            <span>הוצאות</span>
+            <span>🧾 הוצאות</span>
             <strong id="totalAmount">0 ₪</strong>
           </article>
           <article id="remainingCard" class="metric">
-            <span>נשאר</span>
+            <span id="remainingLabel">✅ נשאר</span>
             <strong id="remainingAmount">0 ₪</strong>
           </article>
           <article class="metric">
-            <span>ניצול</span>
+            <span>📊 ניצול</span>
             <strong id="utilizationAmount">0%</strong>
           </article>
         </section>
 
-        <section class="panel">
+        <section class="panel budget-panel">
+          <div class="section-copy">
+            <h2>💰 התקציב החודשי שלנו</h2>
+            <p id="budgetHint" class="subtle">עדיין לא הגדרתם תקציב לחודש הזה</p>
+          </div>
           <div class="progress-wrap">
             <div id="progressBar" class="progress-bar"></div>
           </div>
           <form id="budgetForm" class="inline-form">
             <label>
               תקציב חודשי
-              <input id="budgetInput" type="number" min="0" step="0.01" placeholder="6000">
+              <input id="budgetInput" type="number" min="0" step="0.01" inputmode="decimal" placeholder="6000" aria-describedby="budgetHint budgetMessage">
             </label>
-            <button type="submit">שמירת תקציב</button>
+            <button id="budgetSubmitBtn" type="submit">שמור תקציב</button>
           </form>
           <button id="copyPreviousBudgetBtn" class="ghost hidden" type="button">העתקת תקציב מהחודש הקודם</button>
+          <p id="budgetMessage" class="message" role="status" aria-live="polite"></p>
         </section>
 
         <section class="panel entry-panel">
-          <h2>הוספת הוצאה</h2>
+          <div class="section-copy">
+            <h2>➕ הוספת הוצאה</h2>
+            <p class="subtle">כתבו סכום ותיאור, למשל: 250 סופר או 120 חשמל</p>
+          </div>
           <form id="quickForm" class="quick-form">
-            <input id="quickInput" type="text" placeholder="לדוגמה: 250 סופר" autocomplete="off">
-            <button class="primary" type="submit">פענוח</button>
+            <label class="quick-input-label">
+              הוצאה מהירה
+              <input id="quickInput" type="text" placeholder="לדוגמה: 250 סופר" autocomplete="off" aria-describedby="entryMessage">
+            </label>
+            <button id="quickSubmitBtn" class="primary" type="submit">הוסף הוצאה</button>
           </form>
           <form id="expenseForm" class="expense-form hidden">
             <div class="form-grid">
               <label>
                 סכום
-                <input id="expenseAmount" type="number" min="0.01" step="0.01" required>
+                <input id="expenseAmount" type="number" min="0.01" step="0.01" inputmode="decimal" required>
               </label>
               <label>
                 קטגוריה
@@ -123,8 +148,8 @@
               <button id="cancelExpenseBtn" class="ghost" type="button">ביטול</button>
             </div>
           </form>
-          <button id="manualExpenseBtn" class="ghost" type="button">טופס רגיל</button>
-          <p id="entryMessage" class="message" role="status"></p>
+          <button id="manualExpenseBtn" class="ghost link-like" type="button">מעדיפים טופס מסודר? לחצו כאן</button>
+          <p id="entryMessage" class="message" role="status" aria-live="polite"></p>
         </section>
 
         <section class="split">
@@ -144,17 +169,26 @@
             <button id="undoBtn" class="ghost" type="button">ביטול אחרונה שלי</button>
           </div>
           <form id="filtersForm" class="filters">
-            <select id="categoryFilter">
-              <option value="">כל הקטגוריות</option>
-            </select>
-            <select id="payerFilter">
-              <option value="">כולם</option>
-              <option value="ido">עידו</option>
-              <option value="karina">קארינה</option>
-            </select>
-            <input id="searchInput" type="search" placeholder="חיפוש בתיאור">
+            <label>
+              קטגוריה
+              <select id="categoryFilter">
+                <option value="">כל הקטגוריות</option>
+              </select>
+            </label>
+            <label>
+              משלם/ת
+              <select id="payerFilter">
+                <option value="">כולם</option>
+                <option value="ido">עידו</option>
+                <option value="karina">קארינה</option>
+              </select>
+            </label>
+            <label>
+              חיפוש
+              <input id="searchInput" type="search" placeholder="חיפוש בתיאור">
+            </label>
           </form>
-          <div id="emptyState" class="empty hidden">עדיין אין הוצאות בחודש הזה.</div>
+          <div id="emptyState" class="empty hidden">אין עדיין הוצאות בחודש הזה 🎉</div>
           <div id="expensesList" class="expenses-list"></div>
         </section>
 
@@ -166,18 +200,24 @@
           <div id="historyList" class="history-list"></div>
         </section>
 
-        <section class="panel">
+        <section class="panel share-panel">
           <h2>שיתוף וגיבוי</h2>
-          <div class="row-actions wrap">
-            <button id="shareBtn" type="button">שתף סיכום ב־WhatsApp</button>
+          <div class="share-actions">
+            <button id="shareBtn" class="primary share-button" type="button" aria-label="פתיחת WhatsApp עם סיכום התקציב המוכן">שתף סיכום ב־WhatsApp</button>
             <button id="copySummaryBtn" class="ghost" type="button">העתקת סיכום</button>
-            <button id="backupBtn" class="ghost" type="button">ייצוא JSON</button>
-            <label class="file-button">
-              שחזור JSON
-              <input id="restoreInput" type="file" accept="application/json">
-            </label>
           </div>
-          <p id="backupMessage" class="message" role="status"></p>
+          <details class="backup-details">
+            <summary>אפשרויות גיבוי ושחזור</summary>
+            <p class="subtle">שחזור JSON מחליף את הנתונים הקיימים רק לאחר אישור ברור. מבנה הגיבוי נשאר ללא שינוי.</p>
+            <div class="row-actions wrap">
+              <button id="backupBtn" class="ghost" type="button">ייצוא JSON</button>
+              <label class="file-button">
+                שחזור JSON
+                <input id="restoreInput" type="file" accept="application/json">
+              </label>
+            </div>
+          </details>
+          <p id="backupMessage" class="message" role="status" aria-live="polite"></p>
         </section>
       </main>
     </div>
@@ -188,7 +228,7 @@
         <input id="editExpenseId" type="hidden">
         <label>
           סכום
-          <input id="editAmount" type="number" min="0.01" step="0.01" required>
+          <input id="editAmount" type="number" min="0.01" step="0.01" inputmode="decimal" required>
         </label>
         <label>
           קטגוריה
@@ -216,7 +256,8 @@
       </form>
     </dialog>
 
-    <div id="toast" class="toast hidden" role="status"></div>
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+    <script src="/share-message.js"></script>
     <script src="/app.js"></script>
   </body>
 </html>

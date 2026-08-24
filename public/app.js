@@ -18,7 +18,10 @@ const els = {
   loginForm: document.querySelector('#loginForm'),
   loginError: document.querySelector('#loginError'),
   logoutBtn: document.querySelector('#logoutBtn'),
+  helloText: document.querySelector('#helloText'),
   syncStatus: document.querySelector('#syncStatus'),
+  guideCard: document.querySelector('#guideCard'),
+  dismissGuideBtn: document.querySelector('#dismissGuideBtn'),
   monthTitle: document.querySelector('#monthTitle'),
   prevMonthBtn: document.querySelector('#prevMonthBtn'),
   nextMonthBtn: document.querySelector('#nextMonthBtn'),
@@ -28,14 +31,19 @@ const els = {
   budgetAmount: document.querySelector('#budgetAmount'),
   totalAmount: document.querySelector('#totalAmount'),
   remainingAmount: document.querySelector('#remainingAmount'),
+  remainingLabel: document.querySelector('#remainingLabel'),
   utilizationAmount: document.querySelector('#utilizationAmount'),
   remainingCard: document.querySelector('#remainingCard'),
   progressBar: document.querySelector('#progressBar'),
   budgetForm: document.querySelector('#budgetForm'),
   budgetInput: document.querySelector('#budgetInput'),
+  budgetSubmitBtn: document.querySelector('#budgetSubmitBtn'),
+  budgetHint: document.querySelector('#budgetHint'),
+  budgetMessage: document.querySelector('#budgetMessage'),
   copyPreviousBudgetBtn: document.querySelector('#copyPreviousBudgetBtn'),
   quickForm: document.querySelector('#quickForm'),
   quickInput: document.querySelector('#quickInput'),
+  quickSubmitBtn: document.querySelector('#quickSubmitBtn'),
   expenseForm: document.querySelector('#expenseForm'),
   expenseAmount: document.querySelector('#expenseAmount'),
   expenseCategory: document.querySelector('#expenseCategory'),
@@ -137,10 +145,12 @@ function showToast(message) {
 function setMessage(element, text, isError = false) {
   element.textContent = text || '';
   element.style.color = isError ? 'var(--bad)' : 'var(--muted)';
+  element.classList.toggle('error-text', Boolean(isError));
 }
 
 function setBusy(button, busy) {
   button.disabled = busy;
+  button.setAttribute('aria-busy', busy ? 'true' : 'false');
 }
 
 function renderUserOptions() {
@@ -191,6 +201,8 @@ function showLogin() {
 async function enterApp() {
   els.loginView.classList.add('hidden');
   els.appView.classList.remove('hidden');
+  els.helloText.textContent = `היי ${state.session.name || userName(state.session.user)} 👋`;
+  els.guideCard.classList.toggle('hidden', localStorage.getItem('homeBudgetGuideDismissed') === 'true');
   const categoriesResponse = await api(apiUrl('categories'));
   state.categories = categoriesResponse.categories;
   fillCategorySelect(els.expenseCategory);
@@ -219,12 +231,12 @@ function isUserEnteringData() {
   const active = document.activeElement;
   if (!active) return false;
   const typing = active.matches('input, textarea, select');
-  const inEntryArea = active.closest('.entry-panel') || active.closest('dialog');
+  const inEntryArea = active.closest('.entry-panel') || active.closest('.budget-panel') || active.closest('dialog');
   return Boolean(typing && inEntryArea);
 }
 
 function setSync(ok, text) {
-  els.syncStatus.textContent = text;
+  els.syncStatus.textContent = ok ? `🟢 ${text}` : `🔴 ${text}`;
   els.syncStatus.classList.toggle('offline', !ok);
 }
 
@@ -253,13 +265,19 @@ function renderSummary() {
   els.monthTitle.textContent = monthName(summary.month);
   els.budgetAmount.textContent = formatMoney(summary.budgetCents);
   els.totalAmount.textContent = formatMoney(summary.totalCents);
-  els.remainingAmount.textContent = formatMoney(summary.remainingCents);
-  els.utilizationAmount.textContent = `${summary.utilization}%`;
-  setInputFromCents(els.budgetInput, summary.budgetCents);
-  const status = summary.remainingCents < 0 ? 'bad' : summary.utilization >= 85 ? 'warn' : 'ok';
+  const overBudget = summary.remainingCents < 0;
+  els.remainingLabel.textContent = overBudget ? '⚠️ חריגה' : '✅ נשאר';
+  els.remainingAmount.textContent = formatMoney(Math.abs(summary.remainingCents));
+  const utilization = Number.isFinite(Number(summary.utilization)) ? summary.utilization : 0;
+  els.utilizationAmount.textContent = `${utilization}%`;
+  if (document.activeElement !== els.budgetInput) setInputFromCents(els.budgetInput, summary.budgetCents);
+  els.budgetHint.textContent = summary.budgetCents > 0
+    ? `התקציב לחודש הזה הוא ${formatMoney(summary.budgetCents)}`
+    : 'עדיין לא הגדרתם תקציב לחודש הזה';
+  const status = overBudget ? 'bad' : utilization >= 85 ? 'warn' : 'ok';
   els.remainingCard.className = `metric ${status}`;
   els.progressBar.className = `progress-bar ${status}`;
-  els.progressBar.style.width = `${Math.min(summary.utilization || 0, 100)}%`;
+  els.progressBar.style.width = `${Math.min(utilization, 100)}%`;
   els.copyPreviousBudgetBtn.classList.toggle('hidden', summary.budgetCents > 0);
   renderBreakdowns();
   renderExpenses();
@@ -287,7 +305,7 @@ function renderBreakdowns() {
   for (const user of ['ido', 'karina']) {
     const item = state.summary.paidBy[user];
     const card = document.createElement('div');
-    card.className = 'payer-card';
+    card.className = `payer-card ${user}`;
     card.innerHTML = `<span>${item.name}</span><strong>${formatMoney(item.amountCents)}</strong><small>${item.count} הוצאות</small>`;
     els.payerBreakdown.append(card);
   }
@@ -375,21 +393,12 @@ async function loadHistory() {
   }
 }
 
-function buildSummaryText() {
-  const summary = state.summary;
-  const lines = [
-    `סיכום תקציב הדירה - ${monthName(summary.month)}`,
-    `תקציב: ${formatMoney(summary.budgetCents)}`,
-    `הוצאות: ${formatMoney(summary.totalCents)}`,
-    `${summary.remainingCents >= 0 ? 'נשאר' : 'חריגה'}: ${formatMoney(Math.abs(summary.remainingCents))}`,
-    ''
-  ];
-  for (const item of summary.byCategory) {
-    lines.push(`${item.category}: ${formatMoney(item.amountCents)}`);
-  }
-  lines.push('', `עידו שילם: ${formatMoney(summary.paidBy.ido.amountCents)}`);
-  lines.push(`קארינה שילמה: ${formatMoney(summary.paidBy.karina.amountCents)}`);
-  return lines.join('\n');
+async function getUnfilteredCurrentSummary() {
+  return api(apiUrl('summary', { month: state.currentMonth }));
+}
+
+function buildSummaryText(summary = state.summary) {
+  return window.HomeBudgetShare.buildWhatsAppSummary(summary);
 }
 
 async function copyText(text) {
@@ -419,6 +428,11 @@ function bindEvents() {
     showLogin();
   });
 
+  els.dismissGuideBtn.addEventListener('click', () => {
+    localStorage.setItem('homeBudgetGuideDismissed', 'true');
+    els.guideCard.classList.add('hidden');
+  });
+
   els.prevMonthBtn.addEventListener('click', () => changeMonth(-1));
   els.nextMonthBtn.addEventListener('click', () => changeMonth(1));
   els.todayBtn.addEventListener('click', () => {
@@ -445,12 +459,21 @@ function bindEvents() {
 
   els.budgetForm.addEventListener('submit', async (event) => {
     event.preventDefault();
-    await api(apiUrl('budget', { month: state.currentMonth }), {
-      method: 'PUT',
-      body: JSON.stringify({ month: state.currentMonth, amountCents: centsFromInput(els.budgetInput) })
-    });
-    showToast('התקציב נשמר');
-    await loadSummary();
+    setBusy(els.budgetSubmitBtn, true);
+    setMessage(els.budgetMessage, '');
+    try {
+      await api(apiUrl('budget', { month: state.currentMonth }), {
+        method: 'PUT',
+        body: JSON.stringify({ month: state.currentMonth, amountCents: centsFromInput(els.budgetInput) })
+      });
+      setMessage(els.budgetMessage, 'התקציב נשמר ומתעדכן אצל שניכם.');
+      showToast('התקציב נשמר');
+      await loadSummary();
+    } catch (error) {
+      setMessage(els.budgetMessage, error.message, true);
+    } finally {
+      setBusy(els.budgetSubmitBtn, false);
+    }
   });
 
   els.copyPreviousBudgetBtn.addEventListener('click', async () => {
@@ -471,6 +494,7 @@ function bindEvents() {
   els.quickForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     setMessage(els.entryMessage, '');
+    setBusy(els.quickSubmitBtn, true);
     try {
       const parsed = await api(apiUrl('parse', { text: els.quickInput.value }));
       if (!parsed.ok) {
@@ -482,6 +506,8 @@ function bindEvents() {
       setMessage(els.entryMessage, 'זיהיתי את הפרטים. אפשר לתקן ולאשר.');
     } catch (error) {
       setMessage(els.entryMessage, error.message, true);
+    } finally {
+      setBusy(els.quickSubmitBtn, false);
     }
   });
 
@@ -505,7 +531,7 @@ function bindEvents() {
       els.quickInput.value = '';
       els.expenseForm.reset();
       els.expenseForm.classList.add('hidden');
-      setMessage(els.entryMessage, 'ההוצאה נשמרה וסונכרנה.');
+      setMessage(els.entryMessage, 'ההוצאה נשמרה ומופיעה אצל שניכם.');
       await loadSummary();
     } catch (error) {
       setMessage(els.entryMessage, error.message, true);
@@ -522,6 +548,7 @@ function bindEvents() {
   });
 
   els.undoBtn.addEventListener('click', async () => {
+    if (!confirm('למחוק את ההוצאה האחרונה שהוספת?')) return;
     const response = await api(apiUrl('undo-last'), { method: 'POST' });
     showToast(response.deleted ? 'ההוצאה האחרונה נמחקה' : 'אין הוצאה אחרונה למחיקה');
     await loadSummary();
@@ -556,15 +583,32 @@ function bindEvents() {
   });
 
   els.shareBtn.addEventListener('click', async () => {
-    const text = buildSummaryText();
-    if (navigator.share) {
-      await navigator.share({ title: 'סיכום תקציב הדירה', text });
-      return;
+    setBusy(els.shareBtn, true);
+    try {
+      const summary = await getUnfilteredCurrentSummary();
+      const url = window.HomeBudgetShare.buildWhatsAppUrl(summary);
+      const opened = window.open(url, '_blank', 'noopener');
+      if (!opened) {
+        await copyText(window.HomeBudgetShare.buildWhatsAppSummary(summary));
+        showToast('הסיכום הועתק. אפשר להדביק אותו ב־WhatsApp.');
+      }
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setBusy(els.shareBtn, false);
     }
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
   });
 
-  els.copySummaryBtn.addEventListener('click', () => copyText(buildSummaryText()));
+  els.copySummaryBtn.addEventListener('click', async () => {
+    setBusy(els.copySummaryBtn, true);
+    try {
+      await copyText(buildSummaryText(await getUnfilteredCurrentSummary()));
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setBusy(els.copySummaryBtn, false);
+    }
+  });
 
   els.backupBtn.addEventListener('click', async () => {
     const backup = await api(apiUrl('backup'));
