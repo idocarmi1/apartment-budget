@@ -49,8 +49,8 @@ function parseId(value) {
 function withApi(handler, options = {}) {
   return async function apiHandler(req, res) {
     try {
-      const user = options.auth === false ? null : requireUser(req);
       const repo = options.repo || getRepository();
+      const user = options.auth === false ? null : requireUser(req);
       await handler(req, res, { repo, user, readBody, queryValue, parseId });
     } catch (error) {
       sendJson(res, error.statusCode || 400, { error: error.message || 'שגיאה לא צפויה' });

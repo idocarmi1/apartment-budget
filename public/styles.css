@@ -523,96 +523,6 @@ h2 {
   font-weight: 700;
 }
 
-.image-import {
-  display: grid;
-  gap: var(--space-3);
-  border-top: 1px solid var(--line);
-  padding-top: var(--space-4);
-}
-
-.privacy-note,
-.warning-text {
-  border-radius: 8px;
-  padding: var(--space-3);
-  background: var(--primary-soft);
-  color: var(--primary);
-  font-weight: 800;
-}
-
-.warning-text {
-  background: var(--bad-soft);
-  color: var(--bad);
-}
-
-.upload-box {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-2);
-}
-
-.image-file-button {
-  min-height: 54px;
-}
-
-.image-preview-wrap {
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface-strong);
-}
-
-.image-preview-wrap img {
-  display: block;
-  width: 100%;
-  max-height: 320px;
-  object-fit: contain;
-  background: #ffffff;
-}
-
-.image-review {
-  display: grid;
-  gap: var(--space-3);
-}
-
-.image-review h3 {
-  margin: 0;
-  font-size: 1rem;
-}
-
-.image-transaction-list {
-  display: grid;
-  gap: var(--space-3);
-}
-
-.image-transaction {
-  display: grid;
-  gap: var(--space-3);
-  min-width: 0;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: var(--space-3);
-  background: var(--surface-strong);
-}
-
-.image-transaction.low-confidence,
-.image-transaction.duplicate {
-  border-color: var(--warn);
-  background: #fff8e8;
-}
-
-.transaction-select {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--text);
-}
-
-.transaction-select input {
-  width: 22px;
-  min-height: 22px;
-  accent-color: var(--primary);
-}
-
 .history-item {
   display: grid;
   gap: var(--space-2);
@@ -764,11 +674,6 @@ dialog::backdrop {
   .quick-form {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: end;
-  }
-
-  .upload-box {
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
   }
 
   .form-grid,

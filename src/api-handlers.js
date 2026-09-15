@@ -1,6 +1,5 @@
 const { clearSessionCookie, readSessionUser, signSessionCookie } = require('./auth');
 const { USER_NAMES, USERS } = require('./constants');
-const { parseExpenseImage: parseExpenseImageWithOpenAI } = require('./openai-expense-image');
 const { formatMonth, parseAmountToCents, parseQuickExpense } = require('./parser');
 const { queryValue, readBody, sendJson, sendMethodNotAllowed, withApi } = require('./api-utils');
 
@@ -56,29 +55,6 @@ const logout = async (req, res) => {
 const parse = withApi(async (req, res, ctx) => {
   if (req.method !== 'GET') return sendMethodNotAllowed(res);
   return sendJson(res, 200, parseQuickExpense(ctx.queryValue(req, 'text') || ''));
-});
-
-const parseExpenseImage = withApi(async (req, res, { repo, user, readBody: read }) => {
-  if (req.method !== 'POST') return sendMethodNotAllowed(res);
-  const body = await read(req);
-  let imageDataUrl = body?.imageDataUrl || '';
-  try {
-    const categories = await repo.listCategories();
-    const result = await parseExpenseImageWithOpenAI({ imageDataUrl, categories });
-    return sendJson(res, 200, {
-      ok: true,
-      model: result.model,
-      paidBy: user,
-      transactions: result.transactions.map((transaction) => ({
-        ...transaction,
-        paidBy: user
-      })),
-      warning: result.warning || ''
-    });
-  } finally {
-    imageDataUrl = '';
-    if (body && typeof body === 'object') body.imageDataUrl = undefined;
-  }
 });
 
 const categories = withApi(async (req, res, { repo }) => {
@@ -160,7 +136,6 @@ module.exports = {
   login,
   logout,
   parse,
-  parseExpenseImage,
   restore,
   session,
   summary,

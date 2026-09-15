@@ -9,7 +9,7 @@ MVP פשוט בעברית לניהול תקציב והוצאות דירה משו
 - מסד נתונים מרכזי ב־Supabase PostgreSQL.
 - סנכרון ראשוני באמצעות טעינה מחדש אחרי פעולה, polling כל 4 שניות, ורענון כאשר חוזרים לאפליקציה.
 
-אין שימוש ב־SQLite, ב־Socket.IO, בשרת Node קבוע, ב־React או ב־WhatsApp API. פענוח צילום מסך של הוצאות משתמש ב־OpenAI API בצד השרת בלבד, אם הוגדר מפתח.
+אין שימוש ב־SQLite, ב־Socket.IO, בשרת Node קבוע, ב־React, ב־OpenAI API או ב־WhatsApp API.
 
 ## מה צריך להתקין
 
@@ -39,8 +39,6 @@ SUPABASE_SERVICE_ROLE_KEY=
 IDO_PIN=
 KARINA_PIN=
 COOKIE_SECRET=
-OPENAI_API_KEY=
-OPENAI_VISION_MODEL=
 ```
 
 איפה מוצאים את הערכים:
@@ -51,29 +49,8 @@ OPENAI_VISION_MODEL=
 - `IDO_PIN`: הקוד האישי של עידו.
 - `KARINA_PIN`: הקוד האישי של קארינה.
 - `COOKIE_SECRET`: מחרוזת ארוכה ואקראית לחתימת Cookie.
-- `OPENAI_API_KEY`: מפתח OpenAI לפענוח צילום מסך של ארנק/בנק/אשראי. נשאר בצד השרת בלבד.
-- `OPENAI_VISION_MODEL`: אופציונלי. אם לא מוגדר, ברירת המחדל היא `gpt-5.6-luna`.
 
-ברירת המחדל `gpt-5.6-luna` נבחרה כי לפי תיעוד OpenAI העדכני כל המודלים החדשים תומכים בקלט תמונה דרך Responses API, וזהו מודל חסכוני שמתאים לפענוח קצר ומובנה של עסקאות. אפשר להחליף אותו ב־Vercel דרך `OPENAI_VISION_MODEL` בלי שינוי קוד.
-
-חשוב: `SUPABASE_SECRET_KEY`, `SUPABASE_SERVICE_ROLE_KEY` ו־`OPENAI_API_KEY` הם סודות פרטיים. הם נשארים רק בצד השרת ובמשתני הסביבה של Vercel. לא לשים אותם בקוד הדפדפן.
-
-## פענוח הוצאות מצילום מסך
-
-במסך הוספת ההוצאה אפשר להעלות צילום PNG, JPEG או WebP מהארנק הדיגיטלי, מהבנק או מחברת האשראי.
-
-מה קורה בפועל:
-
-- הדפדפן מאמת סוג וגודל קובץ.
-- תמונות גדולות מוקטנות בצד הלקוח.
-- התמונה נוצרת מחדש באמצעות Canvas כדי להסיר metadata.
-- התמונה נשלחת רק לפונקציית ה־API המרכזית: `/api?action=parse-expense-image`.
-- השרת שולח את התמונה ל־OpenAI Responses API עם Structured Output ומחזיר רק פרטי עסקאות.
-- הצילום לא נשמר ב־Supabase, לא נשמר בקבצים, ולא מודפס ללוגים.
-- שום הוצאה לא נשמרת אוטומטית. עידו או קארינה חייבים לסמן ולאשר את העסקאות לפני השמירה.
-- המשלם נקבע לפי המשתמש המחובר, לא לפי תוכן התמונה.
-
-אם נמצאה עסקה דומה לפי תאריך, סכום, משלם ותיאור מנורמל, האפליקציה תציג אזהרה ולא תסמן אותה כברירת מחדל.
+חשוב: `SUPABASE_SECRET_KEY` וגם `SUPABASE_SERVICE_ROLE_KEY` הם סודות פרטיים. הם נשארים רק בצד השרת ובמשתני הסביבה של Vercel. לא לשים אותם בקוד הדפדפן.
 
 ## התקנה והרצה מקומית
 
@@ -144,9 +121,8 @@ http://IP-של-המחשב:3000
 2. ב־Vercel בחרו `Add New Project`.
 3. חברו את הריפוזיטורי.
 4. במסך Environment Variables הוסיפו:
-   `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `IDO_PIN`, `KARINA_PIN`, `COOKIE_SECRET`, `OPENAI_API_KEY`.
+   `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `IDO_PIN`, `KARINA_PIN`, `COOKIE_SECRET`.
    אם כבר יש לכם `SUPABASE_SERVICE_ROLE_KEY`, האפליקציה תמשיך לתמוך בו, אבל `SUPABASE_SECRET_KEY` מקבל קדימות.
-   אם רוצים להחליף מודל פענוח תמונות, הוסיפו גם `OPENAI_VISION_MODEL`.
 5. פרסו את הפרויקט.
 6. פתחו את הקישור של Vercel והתחברו בנפרד כעידו וכקארינה.
 

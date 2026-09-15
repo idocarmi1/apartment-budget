@@ -252,7 +252,7 @@ test('לחיצה על כפתור השיתוף משתמשת ב-handler האמית
     const scriptSources = [...html.matchAll(/<script src="([^"]+)"/g)].map((match) => match[1]);
     assert.deepEqual(scriptSources, [
       '/share-message.js?v=unicode-runtime-2',
-      '/app.js?v=image-import-1'
+      '/app.js?v=unicode-runtime-2'
     ]);
 
     const scripts = await Promise.all(scriptSources.map((src) => fetch(new URL(src, baseUrl)).then((response) => response.text())));
@@ -343,9 +343,9 @@ test('לחיצה על כפתור השיתוף משתמשת ב-handler האמית
 test('service worker לא מחזיר סקריפטים ישנים ממטמון v1', () => {
   const source = fs.readFileSync(path.join(PUBLIC_ROOT, 'sw.js'), 'utf8');
 
-  assert.match(source, /home-budget-shell-image-import-1/);
+  assert.match(source, /home-budget-shell-unicode-runtime-2/);
   assert.match(source, /\/share-message\.js\?v=unicode-runtime-2/);
-  assert.match(source, /\/app\.js\?v=image-import-1/);
+  assert.match(source, /\/app\.js\?v=unicode-runtime-2/);
   assert.match(source, /event\.request\.destination === 'script'/);
   assert.doesNotMatch(source, /home-budget-shell-v1/);
 });

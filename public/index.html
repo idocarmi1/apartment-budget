@@ -150,29 +150,6 @@
           </form>
           <button id="manualExpenseBtn" class="ghost link-like" type="button">מעדיפים טופס מסודר? לחצו כאן</button>
           <p id="entryMessage" class="message" role="status" aria-live="polite"></p>
-
-          <section class="image-import" aria-labelledby="imageImportTitle">
-            <div class="section-copy">
-              <h2 id="imageImportTitle">📷 הוספת הוצאות מצילום מסך</h2>
-              <p class="subtle">העלו צילום מהארנק, מהבנק או מחברת האשראי. נזהה את העסקאות ותוכלו לבדוק אותן לפני השמירה.</p>
-              <p class="privacy-note">מומלץ לחתוך מהצילום מספרי כרטיס ופרטים אישיים שאינם נחוצים. הצילום לא נשמר באפליקציה.</p>
-            </div>
-            <div class="upload-box">
-              <label class="file-button image-file-button">
-                בחירת צילום מסך
-                <input id="expenseImageInput" type="file" accept="image/png,image/jpeg,image/webp" aria-describedby="imageImportMessage">
-              </label>
-              <button id="cancelImageBtn" class="ghost hidden" type="button">ביטול צילום</button>
-            </div>
-            <div id="imagePreviewWrap" class="image-preview-wrap hidden">
-              <img id="imagePreview" alt="תצוגה מקדימה של צילום המסך שנבחר">
-            </div>
-            <div class="row-actions wrap">
-              <button id="parseImageBtn" class="primary hidden" type="button">פענח עסקאות מהצילום</button>
-            </div>
-            <p id="imageImportMessage" class="message" role="status" aria-live="polite"></p>
-            <div id="imageTransactionsReview" class="image-review hidden" aria-live="polite"></div>
-          </section>
         </section>
 
         <section class="split">
@@ -281,6 +258,6 @@
 
     <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
     <script src="/share-message.js?v=unicode-runtime-2" charset="utf-8"></script>
-    <script src="/app.js?v=image-import-1"></script>
+    <script src="/app.js?v=unicode-runtime-2"></script>
   </body>
 </html>
