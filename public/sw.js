@@ -1,9 +1,9 @@
-const CACHE_NAME = 'home-budget-shell-unicode-runtime-2';
+const CACHE_NAME = 'home-budget-shell-image-import-1';
 const SHELL = [
   '/',
   '/styles.css',
   '/share-message.js?v=unicode-runtime-2',
-  '/app.js?v=unicode-runtime-2',
+  '/app.js?v=image-import-1',
   '/manifest.webmanifest',
   '/icon.svg'
 ];

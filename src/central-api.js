@@ -6,6 +6,7 @@ const ROUTES = {
   'POST login': handlers.login,
   'POST logout': handlers.logout,
   'GET parse': handlers.parse,
+  'POST parse-expense-image': handlers.parseExpenseImage,
   'GET categories': handlers.categories,
   'GET summary': handlers.summary,
   'GET history': handlers.history,

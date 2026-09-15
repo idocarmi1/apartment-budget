@@ -5,6 +5,10 @@ const state = {
   summary: null,
   pollTimer: null,
   loading: false,
+  imageImport: {
+    imageDataUrl: '',
+    transactions: []
+  },
   filters: {
     category: '',
     paidBy: '',
@@ -53,6 +57,13 @@ const els = {
   cancelExpenseBtn: document.querySelector('#cancelExpenseBtn'),
   manualExpenseBtn: document.querySelector('#manualExpenseBtn'),
   entryMessage: document.querySelector('#entryMessage'),
+  expenseImageInput: document.querySelector('#expenseImageInput'),
+  cancelImageBtn: document.querySelector('#cancelImageBtn'),
+  imagePreviewWrap: document.querySelector('#imagePreviewWrap'),
+  imagePreview: document.querySelector('#imagePreview'),
+  parseImageBtn: document.querySelector('#parseImageBtn'),
+  imageImportMessage: document.querySelector('#imageImportMessage'),
+  imageTransactionsReview: document.querySelector('#imageTransactionsReview'),
   categoryBreakdown: document.querySelector('#categoryBreakdown'),
   payerBreakdown: document.querySelector('#payerBreakdown'),
   undoBtn: document.querySelector('#undoBtn'),
@@ -79,6 +90,12 @@ const els = {
   editDate: document.querySelector('#editDate'),
   toast: document.querySelector('#toast')
 };
+
+const IMAGE_IMPORT_MAX_FILE_BYTES = 10 * 1024 * 1024;
+const IMAGE_IMPORT_MAX_DATA_BYTES = 4 * 1024 * 1024;
+const IMAGE_IMPORT_MAX_DIMENSION = 1600;
+const IMAGE_IMPORT_SUPPORTED_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
+const IMAGE_IMPORT_LOW_CONFIDENCE = 0.72;
 
 function localMonth(date = new Date()) {
   const year = date.getFullYear();
@@ -151,6 +168,10 @@ function setMessage(element, text, isError = false) {
 function setBusy(button, busy) {
   button.disabled = busy;
   button.setAttribute('aria-busy', busy ? 'true' : 'false');
+}
+
+function setImageImportMessage(text, isError = false) {
+  setMessage(els.imageImportMessage, text, isError);
 }
 
 function renderUserOptions() {
@@ -231,7 +252,7 @@ function isUserEnteringData() {
   const active = document.activeElement;
   if (!active) return false;
   const typing = active.matches('input, textarea, select');
-  const inEntryArea = active.closest('.entry-panel') || active.closest('.budget-panel') || active.closest('dialog');
+  const inEntryArea = active.closest('.entry-panel') || active.closest('.image-import') || active.closest('.budget-panel') || active.closest('dialog');
   return Boolean(typing && inEntryArea);
 }
 
@@ -355,6 +376,282 @@ function escapeHtml(value) {
     '"': '&quot;',
     "'": '&#039;'
   }[char]));
+}
+
+function normalizeDuplicateText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+function isPotentialDuplicate(transaction, expenses) {
+  const description = normalizeDuplicateText(transaction.description);
+  return expenses.some((expense) => (
+    expense.expenseDate === transaction.expenseDate &&
+    Number(expense.amountCents) === Number(transaction.amountCents) &&
+    expense.paidBy === transaction.paidBy &&
+    normalizeDuplicateText(expense.description) === description
+  ));
+}
+
+function dataUrlByteLength(dataUrl) {
+  const base64 = String(dataUrl || '').split(',')[1] || '';
+  return Math.ceil((base64.length * 3) / 4);
+}
+
+function validateImageFile(file) {
+  if (!file) throw new Error('לא נבחר צילום');
+  if (!IMAGE_IMPORT_SUPPORTED_TYPES.has(file.type)) {
+    throw new Error('סוג קובץ לא נתמך. אפשר להעלות PNG, JPEG או WebP בלבד.');
+  }
+  if (file.size > IMAGE_IMPORT_MAX_FILE_BYTES) {
+    throw new Error('הקובץ גדול מדי. נסו לחתוך את הצילום או להעלות קובץ קטן מ־10MB.');
+  }
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('לא הצלחתי לקרוא את הקובץ'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadImage(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('הצילום לא נטען. נסו קובץ אחר.'));
+    image.src = dataUrl;
+  });
+}
+
+async function sanitizeImageFile(file) {
+  validateImageFile(file);
+  setImageImportMessage('מעלה תמונה ומכין תצוגה מקדימה...');
+  const originalDataUrl = await readFileAsDataUrl(file);
+  const image = await loadImage(originalDataUrl);
+  const scale = Math.min(1, IMAGE_IMPORT_MAX_DIMENSION / Math.max(image.naturalWidth, image.naturalHeight));
+  const width = Math.max(1, Math.round(image.naturalWidth * scale));
+  const height = Math.max(1, Math.round(image.naturalHeight * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext('2d', { alpha: false });
+  if (!context) throw new Error('הדפדפן לא הצליח להכין את התמונה');
+  context.fillStyle = '#ffffff';
+  context.fillRect(0, 0, width, height);
+  context.drawImage(image, 0, 0, width, height);
+  const sanitizedDataUrl = canvas.toDataURL('image/jpeg', 0.86);
+  if (dataUrlByteLength(sanitizedDataUrl) > IMAGE_IMPORT_MAX_DATA_BYTES) {
+    throw new Error('הצילום גדול מדי גם אחרי כיווץ. נסו לחתוך אזור קטן יותר.');
+  }
+  return sanitizedDataUrl;
+}
+
+function resetImageImport() {
+  state.imageImport.imageDataUrl = '';
+  state.imageImport.transactions = [];
+  els.expenseImageInput.value = '';
+  els.imagePreview.src = '';
+  els.imagePreviewWrap.classList.add('hidden');
+  els.cancelImageBtn.classList.add('hidden');
+  els.parseImageBtn.classList.add('hidden');
+  els.imageTransactionsReview.classList.add('hidden');
+  els.imageTransactionsReview.innerHTML = '';
+  setImageImportMessage('');
+}
+
+function renderImageTransactions(transactions) {
+  state.imageImport.transactions = transactions;
+  els.imageTransactionsReview.innerHTML = '';
+  els.imageTransactionsReview.classList.toggle('hidden', transactions.length === 0);
+  if (!transactions.length) return;
+
+  const heading = document.createElement('h3');
+  heading.textContent = 'בדקו ואשרו את העסקאות שזוהו';
+  els.imageTransactionsReview.append(heading);
+
+  const list = document.createElement('div');
+  list.className = 'image-transaction-list';
+  transactions.forEach((transaction, index) => {
+    const card = document.createElement('article');
+    card.className = `image-transaction ${transaction.duplicate ? 'duplicate' : ''} ${transaction.confidence < IMAGE_IMPORT_LOW_CONFIDENCE ? 'low-confidence' : ''}`;
+    const checkboxId = `imageTransactionSelected${index}`;
+    const amountId = `imageTransactionAmount${index}`;
+    const descriptionId = `imageTransactionDescription${index}`;
+    const categoryId = `imageTransactionCategory${index}`;
+    const dateId = `imageTransactionDate${index}`;
+
+    const categoryOptions = state.categories.map((category) => (
+      `<option value="${escapeHtml(category)}" ${category === transaction.category ? 'selected' : ''}>${escapeHtml(category)}</option>`
+    )).join('');
+
+    const warnings = [
+      transaction.duplicate ? 'ייתכן שהוצאה זו כבר קיימת' : '',
+      transaction.confidence < IMAGE_IMPORT_LOW_CONFIDENCE ? 'רמת ביטחון נמוכה - כדאי לבדוק היטב' : '',
+      transaction.warning || ''
+    ].filter(Boolean);
+
+    card.innerHTML = `
+      <label class="transaction-select">
+        <input id="${checkboxId}" type="checkbox" ${transaction.duplicate ? '' : 'checked'} data-field="selected">
+        <span>להוסיף הוצאה זו</span>
+      </label>
+      <div class="form-grid">
+        <label>
+          סכום
+          <input id="${amountId}" type="number" min="0.01" step="0.01" inputmode="decimal" value="${(transaction.amountCents / 100).toFixed(transaction.amountCents % 100 === 0 ? 0 : 2)}" data-field="amount">
+        </label>
+        <label>
+          קטגוריה
+          <select id="${categoryId}" data-field="category">${categoryOptions}</select>
+        </label>
+        <label class="wide">
+          תיאור
+          <input id="${descriptionId}" type="text" maxlength="140" value="${escapeHtml(transaction.description)}" data-field="description">
+        </label>
+        <label>
+          תאריך
+          <input id="${dateId}" type="date" value="${escapeHtml(transaction.expenseDate)}" data-field="date">
+        </label>
+        <label>
+          מי שילם
+          <input type="text" value="${escapeHtml(userName(transaction.paidBy))}" readonly>
+        </label>
+      </div>
+      <div class="meta">
+        <span>ביטחון ${Math.round(transaction.confidence * 100)}%</span>
+        ${transaction.merchant ? `<span>${escapeHtml(transaction.merchant)}</span>` : ''}
+      </div>
+      ${warnings.length ? `<p class="warning-text">${warnings.map(escapeHtml).join(' · ')}</p>` : ''}
+    `;
+    list.append(card);
+  });
+  els.imageTransactionsReview.append(list);
+
+  const actions = document.createElement('div');
+  actions.className = 'row-actions wrap';
+  actions.innerHTML = `
+    <button id="saveImageTransactionsBtn" class="primary" type="button">הוסף את ההוצאות שסומנו</button>
+    <button id="discardImageTransactionsBtn" class="ghost" type="button">ביטול</button>
+  `;
+  els.imageTransactionsReview.append(actions);
+  document.querySelector('#saveImageTransactionsBtn').addEventListener('click', saveSelectedImageTransactions);
+  document.querySelector('#discardImageTransactionsBtn').addEventListener('click', resetImageImport);
+}
+
+async function handleImageFileSelection() {
+  const file = els.expenseImageInput.files[0];
+  try {
+    resetImageImport();
+    if (!file) return;
+    const dataUrl = await sanitizeImageFile(file);
+    state.imageImport.imageDataUrl = dataUrl;
+    els.imagePreview.src = dataUrl;
+    els.imagePreviewWrap.classList.remove('hidden');
+    els.cancelImageBtn.classList.remove('hidden');
+    els.parseImageBtn.classList.remove('hidden');
+    setImageImportMessage('התמונה מוכנה לפענוח. ודאו שאין בצילום פרטים אישיים מיותרים.');
+  } catch (error) {
+    resetImageImport();
+    setImageImportMessage(error.message, true);
+  }
+}
+
+async function parseImageTransactions() {
+  if (!state.imageImport.imageDataUrl) {
+    setImageImportMessage('בחרו צילום לפני הפענוח.', true);
+    return;
+  }
+  setBusy(els.parseImageBtn, true);
+  setImageImportMessage('מפענח עסקאות מהצילום...');
+  els.imageTransactionsReview.classList.add('hidden');
+  els.imageTransactionsReview.innerHTML = '';
+  try {
+    const [parsed, currentSummary] = await Promise.all([
+      api(apiUrl('parse-expense-image'), {
+        method: 'POST',
+        body: JSON.stringify({ imageDataUrl: state.imageImport.imageDataUrl })
+      }),
+      getUnfilteredCurrentSummary()
+    ]);
+    const expenses = currentSummary.expenses || [];
+    const transactions = (parsed.transactions || []).map((transaction) => ({
+      ...transaction,
+      paidBy: state.session.user,
+      duplicate: isPotentialDuplicate({ ...transaction, paidBy: state.session.user }, expenses)
+    }));
+    if (!transactions.length) {
+      setImageImportMessage(parsed.warning || 'לא נמצאו עסקאות בצילום. נסו צילום ברור יותר או מלאו ידנית.', true);
+      return;
+    }
+    renderImageTransactions(transactions);
+    setImageImportMessage(`זוהו ${transactions.length} עסקאות. בדקו אותן לפני השמירה.`);
+  } catch (error) {
+    const message = error.message.includes('OpenAI')
+      ? error.message
+      : error.message || 'תקלה זמנית בפענוח הצילום. נסו שוב בעוד רגע.';
+    setImageImportMessage(message, true);
+  } finally {
+    setBusy(els.parseImageBtn, false);
+  }
+}
+
+function readReviewedTransactions() {
+  return [...els.imageTransactionsReview.querySelectorAll('.image-transaction')].map((card) => {
+    const amount = Number(card.querySelector('[data-field="amount"]').value || 0);
+    return {
+      selected: card.querySelector('[data-field="selected"]').checked,
+      amountCents: Math.round(amount * 100),
+      category: card.querySelector('[data-field="category"]').value,
+      description: card.querySelector('[data-field="description"]').value.trim(),
+      paidBy: state.session.user,
+      expenseDate: card.querySelector('[data-field="date"]').value
+    };
+  });
+}
+
+async function saveSelectedImageTransactions() {
+  const selected = readReviewedTransactions().filter((transaction) => transaction.selected);
+  if (!selected.length) {
+    setImageImportMessage('לא סומנו עסקאות לשמירה.', true);
+    return;
+  }
+  const invalid = selected.find((transaction) => (
+    !transaction.description ||
+    !transaction.expenseDate ||
+    !transaction.category ||
+    !Number.isInteger(transaction.amountCents) ||
+    transaction.amountCents <= 0
+  ));
+  if (invalid) {
+    setImageImportMessage('יש עסקה עם פרט חסר או סכום לא תקין. תקנו אותה לפני השמירה.', true);
+    return;
+  }
+
+  const button = document.querySelector('#saveImageTransactionsBtn');
+  setBusy(button, true);
+  setImageImportMessage('שומר את ההוצאות שסומנו...');
+  try {
+    for (const transaction of selected) {
+      await api(apiUrl('expenses'), {
+        method: 'POST',
+        body: JSON.stringify(transaction)
+      });
+    }
+    resetImageImport();
+    setMessage(els.entryMessage, `נשמרו ${selected.length} הוצאות מהצילום.`);
+    showToast('ההוצאות נשמרו');
+    await loadSummary();
+  } catch (error) {
+    setImageImportMessage(error.message || 'תקלה זמנית בשמירת ההוצאות.', true);
+  } finally {
+    setBusy(button, false);
+  }
 }
 
 function fillExpenseForm(parsed) {
@@ -514,6 +811,10 @@ function bindEvents() {
   els.manualExpenseBtn.addEventListener('click', () => {
     fillExpenseForm({ paidBy: state.session.user, expenseDate: localDate(), category: 'אחר' });
   });
+
+  els.expenseImageInput.addEventListener('change', handleImageFileSelection);
+  els.cancelImageBtn.addEventListener('click', resetImageImport);
+  els.parseImageBtn.addEventListener('click', parseImageTransactions);
 
   els.cancelExpenseBtn.addEventListener('click', () => {
     els.expenseForm.classList.add('hidden');
